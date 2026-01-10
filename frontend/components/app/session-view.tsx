@@ -21,23 +21,13 @@ const MotionBottom = motion.create('div');
 const IN_DEVELOPMENT = process.env.NODE_ENV !== 'production';
 const BOTTOM_VIEW_MOTION_PROPS = {
   variants: {
-    visible: {
-      opacity: 1,
-      translateY: '0%',
-    },
-    hidden: {
-      opacity: 0,
-      translateY: '100%',
-    },
+    visible: { opacity: 1, translateY: '0%' },
+    hidden: { opacity: 0, translateY: '100%' },
   },
   initial: 'hidden',
   animate: 'visible',
   exit: 'hidden',
-  transition: {
-    duration: 0.3,
-    delay: 0.5,
-    ease: 'easeOut',
-  },
+  transition: { duration: 0.3, delay: 0.5, ease: 'easeOut' },
 };
 
 interface FadeProps {
@@ -50,7 +40,7 @@ export function Fade({ top = false, bottom = false, className }: FadeProps) {
   return (
     <div
       className={cn(
-        'from-background pointer-events-none h-4 bg-linear-to-b to-transparent',
+        'pointer-events-none h-4 from-black/60 to-transparent',
         top && 'bg-linear-to-b',
         bottom && 'bg-linear-to-t',
         className
@@ -58,6 +48,7 @@ export function Fade({ top = false, bottom = false, className }: FadeProps) {
     />
   );
 }
+
 interface SessionViewProps {
   appConfig: AppConfig;
 }
@@ -84,14 +75,23 @@ export const SessionView = ({
   useEffect(() => {
     const lastMessage = messages.at(-1);
     const lastMessageIsLocal = lastMessage?.from?.isLocal === true;
-
     if (scrollAreaRef.current && lastMessageIsLocal) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
   }, [messages]);
 
   return (
-    <section className="bg-background relative z-10 h-full w-full overflow-hidden" {...props}>
+    <section
+      {...props}
+      className="relative h-full w-full overflow-hidden bg-gradient-to-br from-slate-950 via-indigo-950/90 to-black"
+    >
+      {/* Top status */}
+      <div className="pointer-events-none absolute inset-x-0 top-4 z-20 flex justify-center">
+        <div className="rounded-full border border-white/15 bg-black/30 px-4 py-1 text-xs tracking-wide text-white/80 backdrop-blur">
+          Interview in progress
+        </div>
+      </div>
+
       {/* Chat Transcript */}
       <div
         className={cn(
@@ -99,28 +99,31 @@ export const SessionView = ({
           !chatOpen && 'pointer-events-none'
         )}
       >
-        <Fade top className="absolute inset-x-4 top-0 h-40" />
-        <ScrollArea ref={scrollAreaRef} className="px-4 pt-40 pb-[150px] md:px-6 md:pb-[180px]">
+        <Fade top className="absolute inset-x-4 top-0 h-28" />
+        <ScrollArea
+          ref={scrollAreaRef}
+          className="px-4 pt-28 pb-[150px] md:px-6 md:pb-[180px]"
+        >
           <ChatTranscript
             hidden={!chatOpen}
             messages={messages}
-            className="mx-auto max-w-2xl space-y-3 transition-opacity duration-300 ease-out"
+            className="mx-auto max-w-2xl space-y-3 text-white/95 transition-opacity duration-300 ease-out"
           />
         </ScrollArea>
       </div>
 
-      {/* Tile Layout */}
+      {/* Main Tiles */}
       <TileLayout chatOpen={chatOpen} />
 
-      {/* Bottom */}
+      {/* Bottom Controls */}
       <MotionBottom
         {...BOTTOM_VIEW_MOTION_PROPS}
         className="fixed inset-x-3 bottom-0 z-50 md:inset-x-12"
       >
         {appConfig.isPreConnectBufferEnabled && (
-          <PreConnectMessage messages={messages} className="pb-4" />
+          <PreConnectMessage messages={messages} className="pb-4 text-white/80" />
         )}
-        <div className="bg-background relative mx-auto max-w-2xl pb-3 md:pb-12">
+        <div className="relative mx-auto max-w-2xl pb-3 md:pb-12">
           <Fade bottom className="absolute inset-x-0 top-0 h-4 -translate-y-full" />
           <AgentControlBar controls={controls} onChatOpenChange={setChatOpen} />
         </div>

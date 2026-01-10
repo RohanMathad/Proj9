@@ -43,10 +43,13 @@ export function PreConnectMessage({ className, messages = [] }: PreConnectMessag
         <MotionMessage
           {...VIEW_MOTION_PROPS}
           aria-hidden={messages.length > 0}
-          className={cn('pointer-events-none text-center', className)}
+          className={cn(
+            'pointer-events-none text-center text-white/80',
+            className
+          )}
         >
-          <ShimmerText className="text-sm font-semibold">
-            Agent is listening, ask it a question
+          <ShimmerText className="text-sm font-medium tracking-wide">
+            AI interviewer is ready — start speaking when prompted
           </ShimmerText>
         </MotionMessage>
       )}

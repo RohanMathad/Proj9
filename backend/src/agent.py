@@ -1,139 +1,197 @@
 import logging
+import os
+import sqlite3
+from typing import Annotated, Optional, List
+from dataclasses import dataclass
 
 from dotenv import load_dotenv
+from pydantic import Field
+
 from livekit.agents import (
     Agent,
     AgentSession,
     JobContext,
     JobProcess,
-    MetricsCollectedEvent,
     RoomInputOptions,
     WorkerOptions,
     cli,
-    metrics,
-    tokenize,
-    # function_tool,
-    # RunContext
+    function_tool,
+    RunContext,
 )
+
 from livekit.plugins import murf, silero, google, deepgram, noise_cancellation
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
-logger = logging.getLogger("agent")
-
+logger = logging.getLogger("interview-agent")
 load_dotenv(".env.local")
 
+DB_FILE = "interview_db.sqlite"
 
-class Assistant(Agent):
-    def __init__(self) -> None:
-        super().__init__(
-            instructions="""You are a helpful voice AI assistant. The user is interacting with you via voice, even if you perceive the conversation as text.
-            You eagerly assist users with their questions by providing information from your extensive knowledge.
-            Your responses are concise, to the point, and without any complex formatting or punctuation including emojis, asterisks, or other symbols.
-            You are curious, friendly, and have a sense of humor.""",
+print("\n" + "🎤" * 40)
+print("AI INTERVIEW AGENT - INITIALIZED")
+print("FLOW: Name → Questions → Confidence → Store DB")
+print("🎤" * 40 + "\n")
+
+#Database
+def get_db_path():
+    return os.path.join(os.path.dirname(__file__), DB_FILE)
+
+def get_conn():
+    conn = sqlite3.connect(get_db_path(), check_same_thread=False)
+    return conn
+
+def init_database():
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS interview_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            candidate_name TEXT,
+            answers TEXT,
+            confidence_score INTEGER,
+            created_at TEXT DEFAULT (datetime('now'))
         )
+    """)
 
-    # To add tools, use the @function_tool decorator.
-    # Here's an example that adds a simple weather tool.
-    # You also have to add `from livekit.agents import function_tool, RunContext` to the top of this file
-    # @function_tool
-    # async def lookup_weather(self, context: RunContext, location: str):
-    #     """Use this tool to look up current weather information in the given location.
-    #
-    #     If the location is not supported by the weather service, the tool will indicate this. You must tell the user the location's weather is unavailable.
-    #
-    #     Args:
-    #         location: The location to look up weather information for (e.g. city name)
-    #     """
-    #
-    #     logger.info(f"Looking up weather for {location}")
-    #
-    #     return "sunny with a temperature of 70 degrees."
+    conn.commit()
+    conn.close()
+
+init_database()
+
+@dataclass
+class InterviewData:
+    candidate_name: Optional[str] = None
+    answers: List[str] = None
+
+
+@function_tool
+async def set_candidate_name(
+    ctx: RunContext[InterviewData],
+    name: Annotated[str, Field(description="Candidate full name")]
+) -> str:
+    ctx.userdata.candidate_name = name
+    ctx.userdata.answers = []
+    return f"Thanks {name}. Let's begin your interview."
+
+@function_tool
+async def record_answer(
+    ctx: RunContext[InterviewData],
+    answer: Annotated[str, Field(description="Candidate answer")]
+) -> str:
+    ctx.userdata.answers.append(answer)
+    return "Answer recorded."
+
+@function_tool
+async def finalize_interview(
+    ctx: RunContext[InterviewData]
+) -> str:
+    """
+    Computes confidence and stores interview in DB
+    """
+
+    answers = ctx.userdata.answers or []
+
+    # Simple deterministic confidence logic
+    total_words = sum(len(a.split()) for a in answers)
+
+    if total_words < 40:
+        confidence = 4
+    elif total_words < 80:
+        confidence = 6
+    elif total_words < 120:
+        confidence = 8
+    else:
+        confidence = 9
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        INSERT INTO interview_results (candidate_name, answers, confidence_score)
+        VALUES (?, ?, ?)
+        """,
+        (
+            ctx.userdata.candidate_name,
+            " | ".join(answers),
+            confidence,
+        ),
+    )
+
+    conn.commit()
+    conn.close()
+
+    return (
+        f"Interview completed successfully.\n"
+        f"Confidence Score: {confidence}/10\n"
+        f"Thank you for interviewing with NovaTech Solutions."
+    )
+
+#Agent
+class InterviewAgent(Agent):
+    def __init__(self):
+        super().__init__(
+            instructions="""
+You are Alex, an AI interviewer at NovaTech Solutions.
+
+STRICT FLOW (DO NOT SKIP):
+
+1. Greet candidate.
+2. Ask for full name → call set_candidate_name.
+3. Introduce role: Java Software Engineer.
+4. Ask exactly 3 EASY DSA questions in Java:
+   - What is an array?
+   - Difference between Array and ArrayList?
+   - What is time complexity?
+5. After each answer → call record_answer.
+6. After 3 answers → call finalize_interview.
+7. End politely.
+""",
+            tools=[
+                set_candidate_name,
+                record_answer,
+                finalize_interview,
+            ],
+        )
 
 
 def prewarm(proc: JobProcess):
     proc.userdata["vad"] = silero.VAD.load()
 
-
 async def entrypoint(ctx: JobContext):
-    # Logging setup
-    # Add any other context you want in all log entries here
-    ctx.log_context_fields = {
-        "room": ctx.room.name,
-    }
+    userdata = InterviewData()
 
-    # Set up a voice AI pipeline using OpenAI, Cartesia, AssemblyAI, and the LiveKit turn detector
     session = AgentSession(
-        # Speech-to-text (STT) is your agent's ears, turning the user's speech into text that the LLM can understand
-        # See all available models at https://docs.livekit.io/agents/models/stt/
         stt=deepgram.STT(model="nova-3"),
-        # A Large Language Model (LLM) is your agent's brain, processing user input and generating a response
-        # See all available models at https://docs.livekit.io/agents/models/llm/
-        llm=google.LLM(
-                model="gemini-2.5-flash",
-            ),
-        # Text-to-speech (TTS) is your agent's voice, turning the LLM's text into speech that the user can hear
-        # See all available models as well as voice selections at https://docs.livekit.io/agents/models/tts/
+        llm=google.LLM(model="gemini-2.5-flash"),
         tts=murf.TTS(
-                voice="en-US-matthew", 
-                style="Conversation",
-                tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),
-                text_pacing=True
-            ),
-        # VAD and turn detection are used to determine when the user is speaking and when the agent should respond
-        # See more at https://docs.livekit.io/agents/build/turns
+            voice="en-US-marcus",
+            style="Conversational",
+        ),
         turn_detection=MultilingualModel(),
         vad=ctx.proc.userdata["vad"],
-        # allow the LLM to generate a response while waiting for the end of turn
-        # See more at https://docs.livekit.io/agents/build/audio/#preemptive-generation
-        preemptive_generation=True,
+        userdata=userdata,
     )
 
-    # To use a realtime model instead of a voice pipeline, use the following session setup instead.
-    # (Note: This is for the OpenAI Realtime API. For other providers, see https://docs.livekit.io/agents/models/realtime/))
-    # 1. Install livekit-agents[openai]
-    # 2. Set OPENAI_API_KEY in .env.local
-    # 3. Add `from livekit.plugins import openai` to the top of this file
-    # 4. Use the following session setup instead of the version above
-    # session = AgentSession(
-    #     llm=openai.realtime.RealtimeModel(voice="marin")
-    # )
-
-    # Metrics collection, to measure pipeline performance
-    # For more information, see https://docs.livekit.io/agents/build/metrics/
-    usage_collector = metrics.UsageCollector()
-
-    @session.on("metrics_collected")
-    def _on_metrics_collected(ev: MetricsCollectedEvent):
-        metrics.log_metrics(ev.metrics)
-        usage_collector.collect(ev.metrics)
-
-    async def log_usage():
-        summary = usage_collector.get_summary()
-        logger.info(f"Usage: {summary}")
-
-    ctx.add_shutdown_callback(log_usage)
-
-    # # Add a virtual avatar to the session, if desired
-    # # For other providers, see https://docs.livekit.io/agents/models/avatar/
-    # avatar = hedra.AvatarSession(
-    #   avatar_id="...",  # See https://docs.livekit.io/agents/models/avatar/plugins/hedra
-    # )
-    # # Start the avatar and wait for it to join
-    # await avatar.start(session, room=ctx.room)
-
-    # Start the session, which initializes the voice pipeline and warms up the models
     await session.start(
-        agent=Assistant(),
+        agent=InterviewAgent(),
         room=ctx.room,
         room_input_options=RoomInputOptions(
-            # For telephony applications, use `BVCTelephony` for best results
-            noise_cancellation=noise_cancellation.BVC(),
+            noise_cancellation=noise_cancellation.BVC()
         ),
     )
 
-    # Join the room and connect to the user
     await ctx.connect()
 
+# ------------------------------------------------------
+# 🚀 RUN
+# ------------------------------------------------------
 
 if __name__ == "__main__":
-    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint, prewarm_fnc=prewarm))
+    cli.run_app(
+        WorkerOptions(
+            entrypoint_fnc=entrypoint,
+            prewarm_fnc=prewarm
+        )
+    )

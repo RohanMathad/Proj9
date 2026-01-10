@@ -33,7 +33,7 @@ export function ViewController() {
   const isSessionActiveRef = useRef(false);
   const { appConfig, isSessionActive, startSession } = useSession();
 
-  // animation handler holds a reference to stale isSessionActive value
+  // keep ref synced with current session state
   isSessionActiveRef.current = isSessionActive;
 
   // disconnect room after animation completes
@@ -54,6 +54,7 @@ export function ViewController() {
           onStartCall={startSession}
         />
       )}
+
       {/* Session view */}
       {isSessionActive && (
         <MotionSessionView
