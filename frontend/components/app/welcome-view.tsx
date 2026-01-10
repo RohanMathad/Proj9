@@ -44,7 +44,7 @@ export const WelcomeView = ({
         </h1>
 
         <p className="mb-8 max-w-xl text-base leading-6 text-white/85 md:text-lg">
-          Speak naturally. Get evaluated in real time. Experience a next-generation AI-driven interview.
+          Get evaluated in real time. Experience a next-generation AI-driven interview.
         </p>
 
         <Button

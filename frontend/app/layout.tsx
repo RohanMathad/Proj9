@@ -67,6 +67,9 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         {children}
         <div className="group fixed bottom-0 left-1/2 z-50 mb-2 -translate-x-1/2">
           <ThemeToggle className="translate-y-20 transition-transform delay-150 duration-300 group-hover:translate-y-0" />
+          <p className="cursor-default rounded-full bg-white/10 px-3 py-1 font-mono text-[10px] font-medium tracking-tight text-black/40 backdrop-blur-sm transition-colors hover:bg-white/20 hover:text-black dark:bg-black/10 dark:text-white/40 dark:hover:bg-black/20 dark:hover:text-white">
+            Developed by Rohan Mathad Copyright © All rights reserved. 
+          </p>
         </div>
       </body>
     </html>
