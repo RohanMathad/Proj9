@@ -1,61 +1,92 @@
-import { Button } from '@/components/livekit/button';
+'use client';
 
-function WelcomeImage() {
-  return (
-    <svg
-      width="64"
-      height="64"
-      viewBox="0 0 64 64"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="mb-6 size-20 text-indigo-300 drop-shadow-[0_0_25px_rgba(99,102,241,0.6)]"
-    >
-      <path
-        d="M15 24V40C15 40.7957 14.6839 41.5587 14.1213 42.1213C13.5587 42.6839 12.7956 43 12 43C11.2044 43 10.4413 42.6839 9.87868 42.1213C9.31607 41.5587 9 40.7957 9 40V24C9 23.2044 9.31607 22.4413 9.87868 21.8787C10.4413 21.3161 11.2044 21 12 21C12.7956 21 13.5587 21.3161 14.1213 21.8787C14.6839 22.4413 15 23.2044 15 24ZM22 5C21.2044 5 20.4413 5.31607 19.8787 5.87868C19.3161 6.44129 19 7.20435 19 8V56C19 56.7957 19.3161 57.5587 19.8787 58.1213C20.4413 58.6839 21.2044 59 22 59C22.7956 59 23.5587 58.6839 24.1213 58.1213C24.6839 57.5587 25 56.7957 25 56V8C25 7.20435 24.6839 6.44129 24.1213 5.87868C23.5587 5.31607 22.7956 5 22 5ZM32 13C31.2044 13 30.4413 13.3161 29.8787 13.8787C29.3161 14.4413 29 15.2044 29 16V48C29 48.7957 29.3161 49.5587 29.8787 50.1213C30.4413 50.6839 31.2044 51 32 51C32.7956 51 33.5587 50.6839 34.1213 50.1213C34.6839 49.5587 35 48.7957 35 48V16C35 15.2044 34.6839 14.4413 34.1213 13.8787C33.5587 13.3161 32.7956 13 32 13ZM42 21C41.2043 21 40.4413 21.3161 39.8787 21.8787C39.3161 22.4413 39 23.2044 39 24V40C39 40.7957 39.3161 41.5587 39.8787 42.1213C40.4413 42.6839 41.2043 43 42 43C42.7957 43 43.5587 42.6839 44.1213 42.1213C44.6839 41.5587 45 40.7957 45 40V24C45 23.2044 44.6839 22.4413 44.1213 21.8787C43.5587 21.3161 42.7957 21 42 21ZM52 17C51.2043 17 50.4413 17.3161 49.8787 17.8787C49.3161 18.4413 49 19.2044 49 20V44C49 44.7957 49.3161 45.5587 49.8787 46.1213C50.4413 46.6839 51.2043 47 52 47C52.7957 47 53.5587 46.6839 54.1213 46.1213C54.6839 45.5587 55 44.7957 55 44V20C55 19.2044 54.6839 18.4413 54.1213 17.8787C53.5587 17.3161 52.7957 17 52 17Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
+import { Loader2, Code2, Globe, Cpu } from 'lucide-react';
+import { FeaturesFooter } from '@/components/features-footer'; // <--- 1. IMPORT IT
 
 interface WelcomeViewProps {
   startButtonText: string;
-  onStartCall: () => void;
+  onStartCall: (company: string) => void;
 }
 
-export const WelcomeView = ({
-  startButtonText,
-  onStartCall,
-  ref,
-}: React.ComponentProps<'div'> & WelcomeViewProps) => {
+export function WelcomeView({ startButtonText, onStartCall }: WelcomeViewProps) {
+  
+  const handleCardClick = (company: string) => {
+    console.log(`Clicked: ${company}`);
+    onStartCall(company);
+  };
+
   return (
-    <div
-      ref={ref}
-      className="relative flex h-svh w-full items-center justify-center bg-gradient-to-br from-indigo-800 via-purple-800 to-black"
-    >
-      {/* soft glow background */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.25),transparent_60%)]" />
+    <div className="relative flex h-svh w-full items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-black overflow-hidden">
+      
+      {/* Background Glow */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.15),transparent_60%)]" />
 
-      <section className="relative z-10 flex max-w-2xl flex-col items-center justify-center rounded-2xl border border-white/10 bg-black/30 px-8 py-10 text-center backdrop-blur-md shadow-2xl shadow-indigo-500/10">
-        <WelcomeImage />
+      <div className="relative z-10 flex flex-col items-center gap-8 p-4 text-center">
+        
+        {/* Header Text */}
+        <div className="space-y-2">
+          <h1 className="text-4xl font-bold tracking-tight text-white md:text-5xl drop-shadow-lg">
+            AI Interview System
+          </h1>
+          <p className="text-lg text-indigo-200/80">
+            Select a role to customize your interview experience.
+          </p>
+        </div>
 
-        <h1 className="mb-4 text-4xl font-bold tracking-tight text-white md:text-5xl">
-          AI Interview System
-        </h1>
+        {/* THE CARDS GRID */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          
+          {/* GOOGLE CARD */}
+          <CompanyCard 
+            name="Google" 
+            icon={<Globe className="h-10 w-10 text-red-400 group-hover:scale-110 transition-transform" />} 
+            desc="Algorithms & Scalability"
+            color="border-red-500/20 hover:border-red-500 hover:bg-red-500/10 hover:shadow-[0_0_30px_rgba(239,68,68,0.3)]"
+            onClick={() => handleCardClick("GOOGLE")}
+          />
 
-        <p className="mb-8 max-w-xl text-base leading-6 text-white/85 md:text-lg">
-          Get evaluated in real time. Experience a next-generation AI-driven interview.
-        </p>
+          {/* META CARD */}
+          <CompanyCard 
+            name="Meta" 
+            icon={<Code2 className="h-10 w-10 text-blue-400 group-hover:scale-110 transition-transform" />} 
+            desc="System Design & Speed"
+            color="border-blue-500/20 hover:border-blue-500 hover:bg-blue-500/10 hover:shadow-[0_0_30px_rgba(59,130,246,0.3)]"
+            onClick={() => handleCardClick("META")}
+          />
 
-        <Button
-          variant="primary"
-          size="lg"
-          onClick={onStartCall}
-          className="mt-2 w-64 font-mono"
-        >
-          {startButtonText}
-        </Button>
-      </section>
+          {/* STARTUP CARD */}
+          <CompanyCard 
+            name="Startup" 
+            icon={<Cpu className="h-10 w-10 text-green-400 group-hover:scale-110 transition-transform" />} 
+            desc="Full Stack & Java"
+            color="border-green-500/20 hover:border-green-500 hover:bg-green-500/10 hover:shadow-[0_0_30px_rgba(34,197,94,0.3)]"
+            onClick={() => handleCardClick("STARTUP")}
+          />
+
+        </div>
+      </div>
+
+      {/* 2. ADD FOOTER HERE - IT WILL ONLY SHOW ON THIS SCREEN */}
+      <FeaturesFooter />
+
     </div>
   );
-};
+}
+
+// --- HELPER COMPONENT ---
+function CompanyCard({ name, icon, desc, color, onClick }: any) {
+  return (
+    <button 
+      onClick={onClick}
+      className={`group relative flex h-64 w-60 flex-col items-center justify-center gap-5 rounded-3xl border bg-black/40 p-6 backdrop-blur-xl transition-all duration-300 hover:-translate-y-2 cursor-pointer z-50 ${color}`}
+    >
+      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-white/5 ring-1 ring-white/10 group-hover:bg-white/10">
+        {icon}
+      </div>
+      <div>
+        <h3 className="text-2xl font-bold text-white">{name}</h3>
+        <p className="mt-2 text-sm text-white/60">{desc}</p>
+      </div>
+    </button>
+  );
+}

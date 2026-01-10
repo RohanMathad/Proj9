@@ -1,7 +1,7 @@
 import { Public_Sans } from 'next/font/google';
 import localFont from 'next/font/local';
 import { headers } from 'next/headers';
-import { ApplyThemeScript, ThemeToggle } from '@/components/app/theme-toggle';
+import { ApplyThemeScript } from '@/components/app/theme-toggle'; // Removed ThemeToggle import if unused
 import { cn, getAppConfig, getStyles } from '@/lib/utils';
 import '@/styles/globals.css';
 
@@ -63,14 +63,13 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         <meta name="description" content={pageDescription} />
         <ApplyThemeScript />
       </head>
-      <body className="overflow-x-hidden">
+      <body className="overflow-x-hidden bg-black text-white">
+        
+        {/* Render children directly. 
+            The Footer is now handled inside WelcomeView 
+            so it doesn't block the interview. */}
         {children}
-        <div className="group fixed bottom-0 left-1/2 z-50 mb-2 -translate-x-1/2">
-          <ThemeToggle className="translate-y-20 transition-transform delay-150 duration-300 group-hover:translate-y-0" />
-          <p className="cursor-default rounded-full bg-white/10 px-3 py-1 font-mono text-[10px] font-medium tracking-tight text-black/40 backdrop-blur-sm transition-colors hover:bg-white/20 hover:text-black dark:bg-black/10 dark:text-white/40 dark:hover:bg-black/20 dark:hover:text-white">
-            Developed by Rohan Mathad Copyright © All rights reserved. 
-          </p>
-        </div>
+
       </body>
     </html>
   );

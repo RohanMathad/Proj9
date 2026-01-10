@@ -7,6 +7,9 @@ export function useRoom(appConfig: AppConfig) {
   const aborted = useRef(false);
   const room = useMemo(() => new Room(), []);
   const [isSessionActive, setIsSessionActive] = useState(false);
+  
+  // 1. NEW: Store the selected company temporarily
+  const selectedCompanyRef = useRef<string>("STARTUP"); 
 
   useEffect(() => {
     function onDisconnected() {
@@ -44,6 +47,11 @@ export function useRoom(appConfig: AppConfig) {
           window.location.origin
         );
 
+        // 2. NEW: Construct the "Trojan Horse" Identity
+        // If the user clicked Google, this becomes "Candidate__GOOGLE"
+        const companyTag = selectedCompanyRef.current;
+        const identity = `Candidate__${companyTag}`;
+
         try {
           const res = await fetch(url.toString(), {
             method: 'POST',
@@ -57,6 +65,8 @@ export function useRoom(appConfig: AppConfig) {
                     agents: [{ agent_name: appConfig.agentName }],
                   }
                 : undefined,
+              // 3. NEW: Send our custom identity to the backend
+              participant_name: identity, 
             }),
           });
           return await res.json();
@@ -68,8 +78,12 @@ export function useRoom(appConfig: AppConfig) {
     [appConfig]
   );
 
-  const startSession = useCallback(() => {
+  // 4. NEW: Update startSession to accept the company name
+  const startSession = useCallback((companyType: string = "STARTUP") => {
     setIsSessionActive(true);
+    
+    // Save the selection so the tokenSource can read it above
+    selectedCompanyRef.current = companyType;
 
     if (room.state === 'disconnected') {
       const { isPreConnectBufferEnabled } = appConfig;
@@ -84,11 +98,6 @@ export function useRoom(appConfig: AppConfig) {
           ),
       ]).catch((error) => {
         if (aborted.current) {
-          // Once the effect has cleaned up after itself, drop any errors
-          //
-          // These errors are likely caused by this effect rerunning rapidly,
-          // resulting in a previous run `disconnect` running in parallel with
-          // a current run `connect`
           return;
         }
 
