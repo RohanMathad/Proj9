@@ -13,6 +13,9 @@ dependencies = [
     "livekit-murf>=0.1.0",
     "livekit-plugins-noise-cancellation~=0.2",
     "python-dotenv",
+    "resend",          # Added for Email
+    "textblob",        # Added for Confidence Score
+    "scikit-learn",    # Added for Knowledge Score
 ]
 
 [dependency-groups]
