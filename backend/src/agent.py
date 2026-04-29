@@ -150,7 +150,6 @@ async def finalize_interview(ctx: RunContext[InterviewData]) -> str:
 # --- UPDATED AGENT CLASS ---
 class InterviewAgent(Agent):
     def __init__(self, custom_instructions):
-        # We pass the DYNAMIC instructions here
         super().__init__(
             instructions=custom_instructions,
             tools=[set_candidate_name, set_candidate_email, record_answer, finalize_interview],
@@ -160,41 +159,37 @@ def prewarm(proc: JobProcess):
     proc.userdata["vad"] = silero.VAD.load()
 
 async def entrypoint(ctx: JobContext):
-    # 1. CONNECT FIRST so we can see who joined
     await ctx.connect()
 
-    # 2. WAIT FOR USER to get their name/identity
     print("⏳ Waiting for participant to join...")
     participant = await ctx.wait_for_participant()
     
-    # 3. DECODE THE TROJAN HORSE
-    # The frontend sends: "Candidate__GOOGLE"
     full_identity = participant.identity or "User__STARTUP"
     print(f"🕵️ Raw Identity Received: {full_identity}")
 
-    company_mode = "STARTUP" # Default
+    company_mode = "STARTUP" 
     if "__" in full_identity:
         parts = full_identity.split("__")
         if len(parts) > 1:
-            company_mode = parts[1] # "GOOGLE" or "META"
+            company_mode = parts[1] 
 
     print(f"✅ ACTIVATING MODE: {company_mode}")
 
-    # 4. SELECT THE MATCHING PROMPT
     selected_prompt = PROMPTS.get(company_mode, PROMPTS["STARTUP"])
 
-    # 5. START THE AGENT WITH THAT PROMPT
     userdata = InterviewData()
     session = AgentSession(
         stt=deepgram.STT(model="nova-3"),
         llm=google.LLM(model="gemini-2.5-flash"),
-        tts=murf.TTS(voice="en-US-marcus", style="Conversational"),
+        
+        # 👇 FIX IS HERE: Removed the broken voice ID so Murf uses a default supported voice
+        tts=murf.TTS(), 
+        
         turn_detection=MultilingualModel(),
         vad=ctx.proc.userdata["vad"],
         userdata=userdata,
     )
 
-    # Pass the selected prompt to the Agent Class
     await session.start(
         agent=InterviewAgent(custom_instructions=selected_prompt),
         room=ctx.room,

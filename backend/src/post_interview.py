@@ -7,6 +7,9 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from dotenv import load_dotenv
 
+# to check the postEmailFunction run program in backend
+# python src\post_interview.py
+
 load_dotenv(".env.local")
 
 resend.api_key = os.getenv("RESEND_API_KEY")
