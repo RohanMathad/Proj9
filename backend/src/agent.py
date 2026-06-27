@@ -20,7 +20,6 @@ from livekit.agents import (
 )
 
 from livekit.plugins import murf, google, deepgram
-from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 # Try to import the post-interview script
 try:
@@ -184,7 +183,7 @@ async def entrypoint(ctx: JobContext):
         # 👇 FIX IS HERE: Removed the broken voice ID so Murf uses a default supported voice
         tts=murf.TTS(), 
         
-        turn_detection=MultilingualModel(),
+        turn_detection="vad",
         userdata=userdata,
     )
 
@@ -197,5 +196,6 @@ if __name__ == "__main__":
     cli.run_app(
         WorkerOptions(
             entrypoint_fnc=entrypoint,
+            num_idle_processes=0 
         )
     )
