@@ -19,7 +19,7 @@ from livekit.agents import (
     RunContext,
 )
 
-from livekit.plugins import murf, silero, google, deepgram, noise_cancellation
+from livekit.plugins import murf, google, deepgram
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 # Try to import the post-interview script
@@ -155,8 +155,7 @@ class InterviewAgent(Agent):
             tools=[set_candidate_name, set_candidate_email, record_answer, finalize_interview],
         )
 
-def prewarm(proc: JobProcess):
-    proc.userdata["vad"] = silero.VAD.load()
+
 
 async def entrypoint(ctx: JobContext):
     await ctx.connect()
@@ -186,22 +185,17 @@ async def entrypoint(ctx: JobContext):
         tts=murf.TTS(), 
         
         turn_detection=MultilingualModel(),
-        vad=ctx.proc.userdata["vad"],
         userdata=userdata,
     )
 
     await session.start(
         agent=InterviewAgent(custom_instructions=selected_prompt),
         room=ctx.room,
-        room_input_options=RoomInputOptions(
-            noise_cancellation=noise_cancellation.BVC()
-        ),
     )
 
 if __name__ == "__main__":
     cli.run_app(
         WorkerOptions(
             entrypoint_fnc=entrypoint,
-            prewarm_fnc=prewarm
         )
     )
