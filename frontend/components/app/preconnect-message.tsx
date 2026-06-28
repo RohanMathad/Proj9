@@ -29,7 +29,7 @@ const VIEW_MOTION_PROPS = {
   initial: 'hidden',
   animate: 'visible',
   exit: 'hidden',
-};
+} as const;
 
 interface PreConnectMessageProps {
   messages?: ReceivedChatMessage[];
@@ -40,6 +40,7 @@ export function PreConnectMessage({ className, messages = [] }: PreConnectMessag
   return (
     <AnimatePresence>
       {messages.length === 0 && (
+        // @ts-ignore
         <MotionMessage
           {...VIEW_MOTION_PROPS}
           aria-hidden={messages.length > 0}
